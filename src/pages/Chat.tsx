@@ -1,4 +1,4 @@
-import { SplineScene } from "@/components/ui/spline";
+
 import { ClaudeChatInput as PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
 import { useState, useEffect, useRef } from "react";
@@ -89,8 +89,9 @@ export default function Chat() {
       <div className="flex-1 flex flex-col items-center justify-between relative z-10 h-full">
 
         {/* Background */}
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <SplineScene scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" className="w-full h-full" />
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-black to-emerald-900/20 opacity-50" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent opacity-30" />
         </div>
 
         {/* Header */}
@@ -111,7 +112,7 @@ export default function Chat() {
         </header>
 
         {/* Chat Area */}
-        <main className="flex-1 w-full relative z-10 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-zinc-800">
+        <main className="flex-1 w-full relative z-10 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-zinc-800 pb-32">
           {!activeConversation || activeConversation.messages.length === 0 ? (
             <div className="w-full h-full flex flex-col justify-center">
               <AnimatedAIChat onSendMessage={handleSendMessage} />
@@ -122,14 +123,13 @@ export default function Chat() {
                 <ChatMessage key={msg.id} message={msg} />
               ))}
               <div ref={messagesEndRef} />
-              <div className="h-32" /> {/* Spacer for bottom input */}
             </div>
           )}
         </main>
 
         {/* Input Area (Only show if chat is active) */}
         {activeConversation && activeConversation.messages.length > 0 && (
-          <div className="w-full p-4 md:p-6 bg-black/80 backdrop-blur-xl border-t border-white/10 flex justify-center z-20">
+          <div className="absolute bottom-6 w-full max-w-3xl px-4 z-30 left-1/2 -translate-x-1/2">
             <PromptInputBox onSendMessage={handleSendMessage} />
           </div>
         )}

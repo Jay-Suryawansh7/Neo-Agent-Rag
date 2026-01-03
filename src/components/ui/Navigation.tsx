@@ -26,6 +26,8 @@ export function Navigation() {
     }
   });
 
+  if (location.pathname === "/chat") return null;
+
   return (
     <motion.header
       variants={{
@@ -36,11 +38,11 @@ export function Navigation() {
       transition={{ duration: 0.35, ease: "easeInOut" }}
       className="fixed top-0 inset-x-0 z-50 flex justify-center py-6 pointer-events-none"
     >
-      <nav className="flex items-center gap-1 bg-black/20 backdrop-blur-xl border border-white/[0.08] rounded-full px-2 py-2 pointer-events-auto shadow-2xl shadow-black/40">
+      <nav className="flex items-center gap-1 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full px-2 py-2 pointer-events-auto shadow-xl shadow-black/50">
         {links.map((link) => {
           const isActive = location.pathname === link.href;
           const Icon = link.icon;
-          
+
           return (
             <Link
               key={link.href}
@@ -58,9 +60,9 @@ export function Navigation() {
                   style={{ borderRadius: 9999 }}
                 />
               )}
-              
+
               <Icon className={cn("w-4 h-4 relative z-10 transition-transform duration-300 group-hover:scale-110", isActive && "text-white")} />
-              
+
               <span className={cn(
                 "relative z-10 hidden md:block",
                 isActive ? "font-medium" : "font-normal"
