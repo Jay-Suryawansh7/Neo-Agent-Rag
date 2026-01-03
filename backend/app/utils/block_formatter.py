@@ -27,8 +27,18 @@ def parse_llm_json_response(llm_output: str) -> list[Block]:
     
     try:
         data = json.loads(cleaned)
+        
+        # Guard against non-dict JSON (e.g., list or string)
+        if not isinstance(data, dict):
+             # Fallback: wrap raw text as paragraph
+            return [Block(type="paragraph", content=llm_output)]
+
         blocks_data = data.get("blocks", [])
         
+        if not blocks_data:
+             # Fallback if blocks key is missing or empty
+            return [Block(type="paragraph", content=llm_output)]
+
         blocks = []
         for b in blocks_data:
             blocks.append(Block(
@@ -39,7 +49,7 @@ def parse_llm_json_response(llm_output: str) -> list[Block]:
             ))
         
         return blocks
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, AttributeError, TypeError):
         # Fallback: wrap raw text as paragraph
         return [Block(type="paragraph", content=llm_output)]
 

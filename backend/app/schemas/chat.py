@@ -50,3 +50,4 @@ class ChatResponse(BaseModel):
     blocks: list[Block]
     sources: list[Source] = []
     mode: Literal["general", "rag"]
+    request_id: Optional[str] = None
