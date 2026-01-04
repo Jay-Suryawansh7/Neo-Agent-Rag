@@ -106,4 +106,92 @@ router.post('/chat', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * Streaming chat endpoint using Server-Sent Events (SSE)
+ * Delivers LLM response progressively for faster perceived latency
+ */
+router.post('/chat/stream', async (req: Request, res: Response) => {
+    const { message, conversation_id } = req.body as ChatRequest;
+    const requestId = uuidv4().substring(0, 8);
+    const convId = conversation_id || requestId;
+
+    console.log(`[${requestId}] [STREAM] Incoming request: ${message.substring(0, 50)}...`);
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    res.flushHeaders();
+
+    try {
+        const conversationHistory = getContextWindow(convId);
+        const mode = detectMode(message);
+        console.log(`[${requestId}] [STREAM] Detected mode: ${mode}`);
+
+        let systemPrompt: string;
+        let sources: any[] = [];
+        let responseMode = 'general';
+
+        if (mode === 'general') {
+            systemPrompt = getGeneralPrompt();
+        } else {
+            // RAG path
+            const [matches, highestScore] = await pineconeService.queryPinecone(message);
+            const threshold = parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.5');
+            const useRag = shouldUseRag(mode, highestScore, threshold);
+
+            if (!useRag) {
+                // Send fallback as single chunk
+                const fallback = createFallbackResponse();
+                res.write(`data: ${JSON.stringify({ type: 'content', data: JSON.stringify(fallback) })}\n\n`);
+                res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+                res.end();
+                return;
+            }
+
+            const [context, rawSources] = getContextFromMatches(matches, threshold);
+            if (!context.trim()) {
+                const fallback = createFallbackResponse();
+                res.write(`data: ${JSON.stringify({ type: 'content', data: JSON.stringify(fallback) })}\n\n`);
+                res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+                res.end();
+                return;
+            }
+
+            systemPrompt = getRagPrompt(context);
+            sources = formatSources(rawSources);
+            responseMode = 'rag';
+        }
+
+        // Send metadata first
+        res.write(`data: ${JSON.stringify({ type: 'meta', mode: responseMode, sources, request_id: requestId })}\n\n`);
+
+        // Stream the LLM response
+        let fullContent = '';
+        const stream = llmService.callLlmStream(systemPrompt, message, conversationHistory);
+
+        for await (const chunk of stream) {
+            fullContent += chunk;
+            res.write(`data: ${JSON.stringify({ type: 'chunk', data: chunk })}\n\n`);
+        }
+
+        // Append to context window
+        appendToContextWindow(convId, 'user', message);
+        appendToContextWindow(convId, 'assistant', fullContent);
+
+        // Send done signal
+        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        res.end();
+
+        console.log(`[${requestId}] [STREAM] Complete (${fullContent.length} chars)`);
+
+    } catch (error: any) {
+        console.error(`[${requestId}] [STREAM] Error:`, error);
+        res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+        res.end();
+    }
+});
+
 export default router;
+

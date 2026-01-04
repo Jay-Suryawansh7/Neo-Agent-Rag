@@ -9,6 +9,7 @@ import { ChatMessage } from "@/components/chat/ChatMessage";
 import { Menu } from "lucide-react";
 
 const API_URL = "http://localhost:8000/api/chat";
+const STREAM_API_URL = "http://localhost:8000/api/chat/stream";
 
 export default function Chat() {
   const {
@@ -16,6 +17,7 @@ export default function Chat() {
     activeId,
     activeConversation,
     sendMessage,
+    updateLastMessage,
     setActiveId,
     createConversation,
     deleteConversation,
@@ -39,7 +41,10 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(API_URL, {
+      // Create placeholder for assistant message
+      sendMessage(JSON.stringify({ blocks: [{ type: 'paragraph', content: '...' }] }), 'assistant');
+
+      const response = await fetch(STREAM_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -49,16 +54,60 @@ export default function Chat() {
       });
 
       if (!response.ok) throw new Error('API request failed');
+      if (!response.body) throw new Error('No response body');
 
-      const result = await response.json();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let buffer = '';
 
-      // Format response for the chat store (expects JSON string for assistant)
-      sendMessage(JSON.stringify({ blocks: result.blocks }), 'assistant');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+
+              if (event.type === 'chunk') {
+                fullContent += event.data;
+                // Update the message with accumulated content
+                // Wrap in JSON blocks format for the chat renderer
+                updateLastMessage(JSON.stringify({
+                  blocks: [{ type: 'paragraph', content: fullContent }]
+                }));
+              } else if (event.type === 'done') {
+                // Parse final content as JSON blocks if valid
+                try {
+                  const parsed = JSON.parse(fullContent);
+                  if (parsed.blocks) {
+                    updateLastMessage(JSON.stringify(parsed));
+                  }
+                } catch {
+                  // Keep as plain text paragraph
+                  updateLastMessage(JSON.stringify({
+                    blocks: [{ type: 'paragraph', content: fullContent }]
+                  }));
+                }
+              } else if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse SSE event:', line);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Chat API error:', error);
-      sendMessage(JSON.stringify({
+      updateLastMessage(JSON.stringify({
         blocks: [{ type: 'paragraph', content: 'Sorry, I encountered an error. Please try again.' }]
-      }), 'assistant');
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -138,3 +187,4 @@ export default function Chat() {
     </div>
   );
 }
+

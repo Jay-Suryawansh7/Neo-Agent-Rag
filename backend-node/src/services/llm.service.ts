@@ -31,6 +31,23 @@ class LlmService {
         });
     }
 
+    private buildMessages(
+        systemPrompt: string,
+        userMessage: string,
+        conversationHistory: { role: 'user' | 'assistant'; content: string }[] = []
+    ): { role: 'system' | 'user' | 'assistant'; content: string }[] {
+        const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+            { role: 'system', content: systemPrompt },
+        ];
+
+        for (const msg of conversationHistory) {
+            messages.push({ role: msg.role, content: msg.content });
+        }
+
+        messages.push({ role: 'user', content: userMessage });
+        return messages;
+    }
+
     public async callLlm(
         systemPrompt: string,
         userMessage: string,
@@ -43,18 +60,7 @@ class LlmService {
         }
 
         try {
-            // Build messages array with conversation history
-            const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
-                { role: 'system', content: systemPrompt },
-            ];
-
-            // Add conversation history (for continuity, not authoritative)
-            for (const msg of conversationHistory) {
-                messages.push({ role: msg.role, content: msg.content });
-            }
-
-            // Add the current user message
-            messages.push({ role: 'user', content: userMessage });
+            const messages = this.buildMessages(systemPrompt, userMessage, conversationHistory);
 
             const response = await this.client.chat.completions.create({
                 model: this.model,
@@ -68,6 +74,38 @@ class LlmService {
             throw error;
         }
     }
+
+    /**
+     * Streaming LLM call - returns an async generator yielding content chunks
+     */
+    public async *callLlmStream(
+        systemPrompt: string,
+        userMessage: string,
+        conversationHistory: { role: 'user' | 'assistant'; content: string }[] = []
+    ): AsyncGenerator<string, void, unknown> {
+        if (!this.client) this.init();
+
+        if (!this.client) {
+            throw new Error("LLM Client not initialized");
+        }
+
+        const messages = this.buildMessages(systemPrompt, userMessage, conversationHistory);
+
+        const stream = await this.client.chat.completions.create({
+            model: this.model,
+            messages,
+            temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+            stream: true,
+        });
+
+        for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+                yield content;
+            }
+        }
+    }
 }
 
 export default LlmService.getInstance();
+

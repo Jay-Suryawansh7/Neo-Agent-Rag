@@ -18,7 +18,7 @@ export function useChatStore() {
         setConversations(parsed);
         // Restore last active or default to most recent
         if (parsed.length > 0) {
-            setActiveId(parsed[0].id);
+          setActiveId(parsed[0].id);
         }
       } catch (e) {
         console.error("Failed to load chats", e);
@@ -39,7 +39,7 @@ export function useChatStore() {
   const createConversation = (initialMessage?: string) => {
     const newId = generateId();
     const title = initialMessage ? generateTitle(initialMessage) : "New Thread";
-    
+
     const newChat: Conversation = {
       id: newId,
       title,
@@ -62,14 +62,14 @@ export function useChatStore() {
 
   const sendMessage = (content: string, role: Role = 'user', reasoning?: string[]) => {
     let chatId = activeId;
-    
+
     // Auto-create if no chat active
     if (!chatId) {
       chatId = createConversation(content);
     }
 
     const { mode, cleanMessage } = detectIntent(content);
-    
+
     const newMessage: Message = {
       id: generateId(),
       role,
@@ -96,12 +96,36 @@ export function useChatStore() {
     // Re-sort/bump to top is optional, but for now we keep order based on creation or bump
     // Let's bump active chat to top
     setConversations(prev => {
-        const active = prev.find(c => c.id === chatId);
-        const others = prev.filter(c => c.id !== chatId);
-        return active ? [active, ...others] : prev;
+      const active = prev.find(c => c.id === chatId);
+      const others = prev.filter(c => c.id !== chatId);
+      return active ? [active, ...others] : prev;
     });
 
     return chatId; // Return ID in case we need it
+  };
+
+  /**
+   * Update the last message in the active conversation (for streaming)
+   */
+  const updateLastMessage = (content: string) => {
+    if (!activeId) return;
+
+    setConversations(prev => prev.map(c => {
+      if (c.id === activeId && c.messages.length > 0) {
+        const updatedMessages = [...c.messages];
+        const lastIndex = updatedMessages.length - 1;
+        updatedMessages[lastIndex] = {
+          ...updatedMessages[lastIndex],
+          content,
+        };
+        return {
+          ...c,
+          messages: updatedMessages,
+          updatedAt: Date.now(),
+        };
+      }
+      return c;
+    }));
   };
 
   return {
@@ -112,6 +136,8 @@ export function useChatStore() {
     createConversation,
     deleteConversation,
     sendMessage,
+    updateLastMessage,
     isLoaded
   };
 }
+
