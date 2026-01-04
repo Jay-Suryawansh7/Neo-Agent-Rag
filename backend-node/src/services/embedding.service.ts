@@ -1,9 +1,15 @@
 import { pipeline, FeatureExtractionPipeline } from '@xenova/transformers';
+import { LRUCache } from '../utils/cache';
 
 class EmbeddingService {
     private static instance: EmbeddingService;
     private pipe: FeatureExtractionPipeline | null = null;
     private readonly modelName = 'Xenova/bge-m3';
+
+    // LRU cache for embeddings (max 100 entries)
+    private embeddingCache = new LRUCache<string, number[]>(100);
+    private cacheHits = 0;
+    private cacheMisses = 0;
 
     private constructor() { }
 
@@ -23,6 +29,17 @@ class EmbeddingService {
     }
 
     public async generateEmbedding(text: string): Promise<number[]> {
+        // Check cache first
+        const cached = this.embeddingCache.get(text);
+        if (cached) {
+            this.cacheHits++;
+            console.log(`[Embedding] Cache HIT (${this.cacheHits} hits / ${this.cacheMisses} misses)`);
+            return cached;
+        }
+
+        this.cacheMisses++;
+        console.log(`[Embedding] Cache MISS - generating embedding...`);
+
         if (!this.pipe) {
             await this.init();
         }
@@ -32,15 +49,25 @@ class EmbeddingService {
         }
 
         // Generate embedding
-        // pooling: 'cls' or 'mean' is common. bge-m3 typically uses CLS or dense output.
-        // The Python code uses model.encode which handles pooling.
-        // Xenova pipeline output needs proper handling.
         const output = await this.pipe(text, { pooling: 'mean', normalize: true });
 
         // Output is a Tensor. We need to convert it to a regular array.
-        // The tensor shape is [1, 1024].
-        return Array.from(output.data);
+        const embedding = Array.from(output.data) as number[];
+
+        // Store in cache
+        this.embeddingCache.set(text, embedding);
+
+        return embedding;
+    }
+
+    public getCacheStats(): { hits: number; misses: number; size: number } {
+        return {
+            hits: this.cacheHits,
+            misses: this.cacheMisses,
+            size: this.embeddingCache.size
+        };
     }
 }
 
 export default EmbeddingService.getInstance();
+
