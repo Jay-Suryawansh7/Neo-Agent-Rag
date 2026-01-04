@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import chatRouter from './routes/chatHelper.routes';
+import embeddingService from './services/embedding.service';
 
 dotenv.config();
 
@@ -18,6 +19,14 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+// Async startup to preload models
+(async () => {
+    console.log('[Startup] Preloading embedding model...');
+    const startTime = Date.now();
+    await embeddingService.init();
+    console.log(`[Startup] Embedding model loaded in ${Date.now() - startTime}ms`);
+
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+})();
