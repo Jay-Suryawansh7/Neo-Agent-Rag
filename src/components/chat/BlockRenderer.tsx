@@ -29,15 +29,16 @@ export function BlockRenderer({ block }: { block: Block }) {
       );
     case 'paragraph':
       return (
-        <ReactMarkdown
-          className="text-zinc-300 leading-7 mb-4 font-light prose prose-invert max-w-none prose-p:leading-7 prose-p:mb-4"
-          remarkPlugins={[remarkGfm]}
-          components={{
-            p: ({ children }: { children: React.ReactNode }) => <p className="mb-0">{children}</p>
-          }}
-        >
-          {block.content}
-        </ReactMarkdown>
+        <div className="text-zinc-300 leading-7 mb-4 font-light prose prose-invert max-w-none prose-p:leading-7 prose-p:mb-4">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }: { children?: React.ReactNode }) => <p className="mb-0">{children}</p>
+            }}
+          >
+            {block.content}
+          </ReactMarkdown>
+        </div>
       );
     case 'heading':
       return (
