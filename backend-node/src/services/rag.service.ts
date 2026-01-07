@@ -74,3 +74,37 @@ export function getContextFromMatches(matches: Match[], threshold: number): [str
     const context = contextParts.join('\n\n---\n\n');
     return [context, sources];
 }
+
+/**
+ * Extract context from hybrid search results
+ * Uses finalScore for filtering and includes hybrid scoring metadata
+ */
+export function getContextFromHybridResults(
+    results: { finalScore: number; metadata: Record<string, any>; semanticScore: number; keywordScore: number }[],
+    threshold: number
+): [string, any[]] {
+    const contextParts: string[] = [];
+    const sources: any[] = [];
+
+    for (const result of results) {
+        if (result.finalScore < threshold) continue;
+
+        const metadata = result.metadata || {};
+        const text = metadata.text;
+
+        if (text) {
+            contextParts.push(text);
+            sources.push({
+                title: metadata.title || 'Unknown',
+                source: metadata.source || 'Unknown',
+                score: Number(result.finalScore.toFixed(3)),
+                semanticScore: Number(result.semanticScore.toFixed(3)),
+                keywordScore: Number(result.keywordScore.toFixed(3)),
+            });
+        }
+    }
+
+    const context = contextParts.join('\n\n---\n\n');
+    return [context, sources];
+}
+

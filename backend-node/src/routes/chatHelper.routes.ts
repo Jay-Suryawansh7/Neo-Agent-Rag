@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatRequest, ChatResponse } from '../types/chat';
-import { detectMode, shouldUseRag, getContextFromMatches } from '../services/rag.service';
+import { detectMode, shouldUseRag, getContextFromMatches, getContextFromHybridResults } from '../services/rag.service';
 import pineconeService from '../services/pinecone.service';
+import hybridService from '../services/hybrid.service';
 import llmService from '../services/llm.service';
 import {
     parseLlmJsonResponse,
@@ -55,9 +56,10 @@ router.post('/chat', async (req: Request, res: Response) => {
             return;
         }
 
-        // Step 3: RAG candidate - query Pinecone
-        const [matches, highestScore] = await pineconeService.queryPinecone(message);
-        console.log(`[${requestId}] Pinecone Stats: Matches=${matches.length}, HighScore=${highestScore}`);
+        // Step 3: RAG candidate - perform HYBRID search (semantic + keyword)
+        const hybridResults = await hybridService.performHybridSearch(message, 10);
+        const highestScore = hybridService.getHighestScore(hybridResults);
+        console.log(`[${requestId}] Hybrid Search: Results=${hybridResults.length}, HighScore=${highestScore?.toFixed(3)}`);
 
         // Step 4: Decide if RAG should be used
         const threshold = parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.5'); // Default 0.5
@@ -69,8 +71,8 @@ router.post('/chat', async (req: Request, res: Response) => {
             return;
         }
 
-        // Step 5: Extract context
-        const [context, rawSources] = getContextFromMatches(matches, threshold);
+        // Step 5: Extract context from hybrid results
+        const [context, rawSources] = getContextFromHybridResults(hybridResults, threshold);
         console.log(`[${requestId}] Context Length: ${context.length}`);
 
         if (!context.trim()) {
@@ -136,11 +138,17 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
         if (mode === 'general') {
             systemPrompt = getGeneralStreamingPrompt();
         } else {
-            // RAG path
-            const [matches, highestScore] = await pineconeService.queryPinecone(message, 5); // Explicitly topK 5
-            console.log(`[${requestId}] [STREAM] Pinecone: ${matches.length} matches, highest score: ${highestScore}`);
-            if (matches.length > 0) {
-                console.log(`[${requestId}] [STREAM] Top match scores:`, matches.slice(0, 5).map(m => ({ id: m.id, score: m.score })));
+            // RAG path - use HYBRID search (semantic + keyword)
+            const hybridResults = await hybridService.performHybridSearch(message, 10);
+            const highestScore = hybridService.getHighestScore(hybridResults);
+            console.log(`[${requestId}] [STREAM] Hybrid Search: ${hybridResults.length} results, highest score: ${highestScore?.toFixed(3)}`);
+            if (hybridResults.length > 0) {
+                console.log(`[${requestId}] [STREAM] Top match scores:`, hybridResults.slice(0, 5).map(r => ({
+                    id: r.id,
+                    semantic: r.semanticScore.toFixed(3),
+                    keyword: r.keywordScore.toFixed(3),
+                    final: r.finalScore.toFixed(3)
+                })));
             }
             const threshold = parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.5');
             console.log(`[${requestId}] [STREAM] RAG threshold: ${threshold}`);
@@ -154,7 +162,7 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
                 return;
             }
 
-            const [context, rawSources] = getContextFromMatches(matches, threshold);
+            const [context, rawSources] = getContextFromHybridResults(hybridResults, threshold);
             if (!context.trim()) {
                 const fallbackText = "I don't have that information in Cogneoverse knowledge.";
                 res.write(`data: ${JSON.stringify({ type: 'chunk', data: fallbackText })}\n\n`);
