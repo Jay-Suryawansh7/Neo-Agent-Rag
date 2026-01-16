@@ -4,11 +4,12 @@ This is the **Active** backend service for the Chatbot Spline application, built
 
 ## Features
 
-- **API Endpoints**: RESTful API for chat interactions.
+- **Multi-Hop RAG**: Iterative retrieval that decomposes complex queries into sub-queries for comprehensive context gathering.
+- **Hybrid Search**: Combines semantic vector search (Pinecone) with keyword-based filtering for precise results.
 - **RAG Pipeline**: Integrates with Pinecone for vector search and Xenova transformers for local embeddings.
-- **Hybrid Search**: Combines semantic vector search with keyword-based filtering for improved context retrieval specificity.
-- **Streaming**: Supports streaming responses (e.g., SSE) for real-time chat.
-- **TypeScript**: Typed codebase for better maintainability.
+- **Streaming (SSE)**: Server-Sent Events for real-time progressive response delivery.
+- **Context Window**: Rolling conversation history for multi-turn dialogue coherence.
+- **TypeScript**: Fully typed codebase for maintainability and reliability.
 
 ## Setup
 
@@ -62,7 +63,7 @@ OPENAI_API_KEY=your_openai_api_key (if used)
 ## Project Structure
 
 - `src/`: Source code.
-  - `controllers/`: Request handlers.
-  - `services/`: Business logic (RAG, Embedding, LLM, Hybrid Search).
-  - `routes/`: API route definitions.
-  - `utils/`: Helper functions (keywords.ts, formatter.ts, etc.).
+  - `services/`: Core services — `multihop.service.ts`, `rag.service.ts`, `hybrid.service.ts`, `embedding.service.ts`, `llm.service.ts`, `pinecone.service.ts`
+  - `routes/`: API route definitions (`chatHelper.routes.ts`)
+  - `utils/`: Prompts, formatters, context window, keyword extraction
+  - `types/`: TypeScript interfaces

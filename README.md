@@ -1,14 +1,22 @@
 # Chatbot Spline - Neo Agent
 
-A modern chatbot application featuring a **React + TypeScript + Vite** frontend and a dual-backend architecture (Node.js active, Python legacy).
+A modern AI chatbot application featuring a **React + TypeScript + Vite** frontend and an intelligent Node.js backend with advanced RAG capabilities.
+
+## ✨ Key Features
+
+- **Multi-Hop RAG**: Intelligent query decomposition that iteratively retrieves context for complex questions
+- **Hybrid Search**: Combines semantic vector search (Pinecone) with keyword-based filtering
+- **Streaming Responses**: Real-time SSE-based response streaming for low-latency UX
+- **Context Window**: Rolling conversation memory for coherent multi-turn dialogues
+- **Local Embeddings**: Uses Xenova/transformers for privacy-friendly local embedding generation
 
 ## Project Structure
 
 This repository contains the following main components:
 
 - **`src/`**: The Frontend application built with React, TypeScript, and Vite.
-- **`backend-node/`**: The **Active** Backend implementation using Node.js, Express, and **Hybrid Search** (Pinecone + Keyword) RAG pipeline.
-- **`backend/`**: The **Legacy** Backend implementation using Python (FastAPI).
+- **`backend-node/`**: The **Active** Backend with Node.js, Express, TypeScript, and Multi-Hop RAG pipeline.
+- **`backend/`**: The **Legacy** Backend implementation using Python (FastAPI) — deprecated.
 
 ## Getting Started
 
