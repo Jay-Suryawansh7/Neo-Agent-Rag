@@ -4,6 +4,7 @@ import { ChatRequest, ChatResponse } from '../types/chat';
 import { detectMode, shouldUseRag, getContextFromMatches, getContextFromHybridResults } from '../services/rag.service';
 import pineconeService from '../services/pinecone.service';
 import hybridService from '../services/hybrid.service';
+import multiHopService from '../services/multihop.service';
 import llmService from '../services/llm.service';
 import {
     parseLlmJsonResponse,
@@ -56,10 +57,15 @@ router.post('/chat', async (req: Request, res: Response) => {
             return;
         }
 
-        // Step 3: RAG candidate - perform HYBRID search (semantic + keyword)
-        const hybridResults = await hybridService.performHybridSearch(message, 10);
+        // Step 3: RAG candidate - perform MULTI-HOP search
+        const multiHopResult = await multiHopService.performMultiHopSearch(message);
+        const hybridResults = multiHopResult.results;
         const highestScore = hybridService.getHighestScore(hybridResults);
-        console.log(`[${requestId}] Hybrid Search: Results=${hybridResults.length}, HighScore=${highestScore?.toFixed(3)}`);
+
+        console.log(`[${requestId}] Multi-Hop Search: Hops=${multiHopResult.hops}, Total Results=${hybridResults.length}, HighScore=${highestScore?.toFixed(3)}`);
+        if (multiHopResult.generatedQueries.length > 0) {
+            console.log(`[${requestId}] Generated queries: ${multiHopResult.generatedQueries.join(', ')}`);
+        }
 
         // Step 4: Decide if RAG should be used
         const threshold = parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.5'); // Default 0.5
@@ -138,10 +144,15 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
         if (mode === 'general') {
             systemPrompt = getGeneralStreamingPrompt();
         } else {
-            // RAG path - use HYBRID search (semantic + keyword)
-            const hybridResults = await hybridService.performHybridSearch(message, 10);
+            // RAG path - use MULTI-HOP search
+            const multiHopResult = await multiHopService.performMultiHopSearch(message);
+            const hybridResults = multiHopResult.results;
             const highestScore = hybridService.getHighestScore(hybridResults);
-            console.log(`[${requestId}] [STREAM] Hybrid Search: ${hybridResults.length} results, highest score: ${highestScore?.toFixed(3)}`);
+
+            console.log(`[${requestId}] [STREAM] Multi-Hop Search: Hops=${multiHopResult.hops}, Results=${hybridResults.length}, highest score: ${highestScore?.toFixed(3)}`);
+            if (multiHopResult.generatedQueries.length > 0) {
+                console.log(`[${requestId}] [STREAM] Generated queries: ${multiHopResult.generatedQueries.join(', ')}`);
+            }
             if (hybridResults.length > 0) {
                 console.log(`[${requestId}] [STREAM] Top match scores:`, hybridResults.slice(0, 5).map(r => ({
                     id: r.id,

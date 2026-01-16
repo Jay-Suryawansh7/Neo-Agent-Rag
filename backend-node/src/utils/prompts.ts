@@ -137,3 +137,27 @@ export function getRagStreamingPrompt(context: string): string {
   return RAG_STREAMING_PROMPT.replace('{context}', context);
 }
 
+export const QUERY_DECOMPOSITION_PROMPT = `You are an expert at breaking down complex questions into simple, retrievable sub-queries.
+You will be given a user question and a set of context chunks that have already been retrieved.
+
+Your goal is to determine if the current context is sufficient to answer the user's question.
+- If YES: Return an empty list of queries.
+- If NO: Generate a list of 1-3 specific search queries to find the missing information.
+
+Existing Context:
+{context}
+
+User Question:
+{question}
+
+Output MUST be a valid JSON object with the following structure:
+{
+    "sufficient": boolean,
+    "queries": ["query 1", "query 2"]
+}
+`;
+
+export function getQueryDecompositionPrompt(context: string, question: string): string {
+  return QUERY_DECOMPOSITION_PROMPT.replace('{context}', context).replace('{question}', question);
+}
+
