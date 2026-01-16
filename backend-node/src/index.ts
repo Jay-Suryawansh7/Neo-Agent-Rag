@@ -2,10 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import chatRouter from './routes/chatHelper.routes';
+import feedbackRouter from './routes/feedback.routes';
 import embeddingService from './services/embedding.service';
 import { simpleFetch, Headers, Request, Response } from './utils/simpleFetch';
+import { initDb } from './utils/db'; // Initialize DB
 
 dotenv.config();
+
+// Initialize DB
+initDb();
 
 // Polyfill global fetch to fix DNS issues with Pinecone (Selective)
 const originalFetch = global.fetch;
@@ -35,6 +40,9 @@ app.use(express.json());
 
 // Routes
 app.use('/api', chatRouter);
+app.use('/api', feedbackRouter);
+
+
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });

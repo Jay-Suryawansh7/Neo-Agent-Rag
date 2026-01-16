@@ -72,6 +72,15 @@ class PineconeService {
             return [[], null];
         }
     }
+
+    public async upsert(vectors: { id: string; values: number[]; metadata?: Record<string, any> }[]): Promise<void> {
+        if (!this.pc) this.init();
+        if (!this.pc || !this.indexName) {
+            throw new Error("Pinecone not initialized");
+        }
+        const index = this.pc.index(this.indexName);
+        await index.upsert(vectors);
+    }
 }
 
 export default PineconeService.getInstance();
