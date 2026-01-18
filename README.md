@@ -1,55 +1,90 @@
-# Chatbot Spline - Neo Agent
+# Neo - Mental Health AI Agent
 
-A modern AI chatbot application featuring a **React + TypeScript + Vite** frontend and an intelligent Node.js backend with advanced RAG capabilities.
+A next-generation AI agent designed to provide intelligent, context-aware mental health support. **Neo** combines a stunning, high-performance frontend with a powerful Multi-Hop RAG backend to deliver accurate and empathetic responses.
+
+![Neo Banner](https://placehold.co/1200x400/101010/ffffff?text=Neo+Mental+Health+AI)
 
 ## ✨ Key Features
 
-- **Multi-Hop RAG**: Intelligent query decomposition that iteratively retrieves context for complex questions
-- **Hybrid Search**: Combines semantic vector search (Pinecone) with keyword-based filtering
-- **Streaming Responses**: Real-time SSE-based response streaming for low-latency UX
-- **Context Window**: Rolling conversation memory for coherent multi-turn dialogues
-- **Local Embeddings**: Uses Xenova/transformers for privacy-friendly local embedding generation
+- **🧠 Multi-Hop RAG System**: Decomposes complex user queries into sub-questions, iteratively retrieving context to build a complete answer.
+- **⚡ Real-time Streaming**: Utilizes Server-Sent Events (SSE) for instant, typewriter-style responses.
+- **🔍 Hybrid Search**: Merges semantic vector search (Pinecone) with keyword-based filtering for high-precision retrieval.
+- **🔄 Rolling Context Window**: Maintains conversation history (approx. 6-8 messages) for coherent multi-turn dialogues.
+- **🎨 Immersive UI**: Built with **React 19**, **Vite**, and **Tailwind CSS**, featuring 3D elements (**Spline**) and smooth animations (**Framer Motion**).
+- **📝 Feedback Loop**: Integrated SQLite feedback system to continuously improve response quality based on user interactions.
+- **🔒 Local Embeddings**: Uses `@xenova/transformers` for privacy-first, on-device embedding generation (bge-m3).
 
-## Project Structure
+## 🛠️ Tech Stack
 
-This repository contains the following main components:
+### Frontend
+- **Framework**: React 19 + Vite
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + clsx + tailwind-merge
+- **Animations**: Framer Motion
+- **3D Graphics**: @splinetool/react-spline
+- **Routing**: React Router DOM 7
 
-- **`src/`**: The Frontend application built with React, TypeScript, and Vite.
-- **`backend-node/`**: The **Active** Backend with Node.js, Express, TypeScript, and Multi-Hop RAG pipeline.
-- **`backend/`**: The **Legacy** Backend implementation using Python (FastAPI) — deprecated.
+### Backend (Active)
+- **Runtime**: Node.js (Express)
+- **Language**: TypeScript
+- **Vector DB**: Pinecone
+- **LLM**: OpenAI / Custom LLM Integration
+- **Database**: SQLite (for feedback & metrics)
+- **Embeddings**: Local ONNX models via Xenova
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18+ recommended)
-- npm or yarn
+- **Node.js**: v20+ recommended
+- **Pinecone**: API Key and Index
+- **OpenAI API Key**: (Or compatible LLM key)
 
-### Frontend Setup
-1. Navigate to the root directory.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-   The application will run at `http://localhost:5173` (or similar).
+### Installation
 
-### Backend Setup
-Please refer to the specific README files for each backend:
+Clone the repository:
+```bash
+git clone https://github.com/Yashuuuu02/neo.git
+cd neo
+```
 
-- [Node.js Backend Documentation](./backend-node/README.md) (Recommended)
-- [Python Backend Documentation](./backend/README.md) (Legacy)
+#### 1. Frontend Setup
+```bash
+# Install dependencies
+npm install
 
-## Development
+# Start development server
+npm run dev
+```
+The app will open at `http://localhost:5173`.
 
-This project uses **Vite** for the frontend build tooling.
+#### 2. Backend Setup
+Navigate to the active backend directory:
+```bash
+cd backend-node
 
-- `npm run build`: Build the frontend for production.
-- `npm run lint`: Run ESLint checks.
-- `npm run preview`: Preview the production build locally.
+# Install dependencies
+npm install
 
-## License
+# Create .env file
+cp .env.example .env
+# (Populate PORT, PINECONE_API_KEY, OPENAI_API_KEY, etc.)
 
-Private Repository.
+# Start server
+npm run dev
+```
+The backend runs on `http://localhost:3000`.
+
+## 📂 Project Structure
+
+- **`src/`**: Modern React Frontend source code.
+- **`backend-node/`**: **(ACTIVE)** Main Node.js/Express backend service.
+- **`backend/`**: *(Legacy)* Python FastAPI backend implementation.
+- **`rag_feedback.db`**: Local SQLite database for storing user feedback.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request for any improvements.
+
+## 📄 License
+
+This project is licensed under the MIT License.
